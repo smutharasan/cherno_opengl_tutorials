@@ -6,9 +6,11 @@
 #include <string>
 #include <sstream>
 
+#include "Renderer.h"
+
 #include "VertexBuffer.h"
 #include "IndexBuffer.h"
-#include "Renderer.h"
+#include "VertexArray.h"
 
 /**
     A struct that combines shader sources into a single type.
@@ -41,7 +43,7 @@ static ShaderProgramSource ParseShader(const std::string filePath)
     while (getline(stream, line))
     {
         // Set the type if #shader is found
-        if (line.find("#shader") != std::string::npos) 
+        if (line.find("#shader") != std::string::npos)
         {
             if (line.find("vertex") != std::string::npos)
                 type = Shadertype::VERTEX;
@@ -78,7 +80,7 @@ static unsigned int CompileShader(unsigned int type, const std::string& source)
     {
         int length;
         GLCall(glGetShaderiv(id, GL_INFO_LOG_LENGTH, &length));
-        char* message = (char*) alloca(length * sizeof(char)); // Allocate this on the stack dynamically because 'char message[length]' is not allowed
+        char* message = (char*)alloca(length * sizeof(char)); // Allocate this on the stack dynamically because 'char message[length]' is not allowed
         GLCall(glGetShaderInfoLog(id, length, &length, message));
         std::cout << "Failed to compile " << (type == GL_VERTEX_SHADER ? "vertex" : "fragment") << " shader:" << std::endl;
         std::cout << message << std::endl;
@@ -105,7 +107,7 @@ static unsigned int CreateShader(const std::string& vertexShader, const std::str
     // Attach both shaders to the program
     GLCall(glAttachShader(program, vs));
     GLCall(glAttachShader(program, fs));
-    
+
     GLCall(glLinkProgram(program)); // Link the program so the shaders are used
     GLCall(glValidateProgram(program)); // Check if the program can be executed
 
@@ -142,7 +144,7 @@ int main(void)
 
     // Synchronize the refresh rate with our native refresh rate
     glfwSwapInterval(1);
-    
+
     // Initialize Glew
     if (glewInit() != GLEW_OK)
         std::cout << "glewInit error!" << std::endl;
@@ -150,77 +152,70 @@ int main(void)
     // Log the OpenGL version used because we can
     std::cout << glGetString(GL_VERSION) << std::endl;
 
-
-    // Create and select (bind) the data & buffer for drawing
-    float positions[] =
     {
-        -0.5, -0.5, // bottom-left
-         0.5, -0.5, // bottom right
-         0.5,  0.5, // top right
-        -0.5,  0.5  // top left
-    };
+        // Create and select (bind) the data & buffer for drawing
+        float positions[] =
+        {
+            -0.5, -0.5, // bottom-left
+             0.5, -0.5, // bottom right
+             0.5,  0.5, // top right
+            -0.5,  0.5  // top left
+        };
 
-    // The indexes of the vertices we want to draw
-    unsigned int indices[] =
-    {
-        0, 1, 2,
-        2, 3, 0
-    };
+        // The indexes of the vertices we want to draw
+        unsigned int indices[] =
+        {
+            0, 1, 2,
+            2, 3, 0
+        };
 
-    // Initialize our vertex array object
-    unsigned int vao;
-    GLCall(glGenVertexArrays(1, &vao));
-    GLCall(glBindVertexArray(vao));
+        VertexArray va; // Initialize our vertex array 
+        VertexBuffer vb(positions, 4 * 2 * sizeof(float)); // Create and bind a buffer for the vertices
+        VertexBufferLayout layout; // Create a layout for the buffer we created
+        layout.Push<float>(2); // 
+        va.AddBuffer(vb, layout);
 
-    VertexArray triangleVertexArray;
-    VertexBuffer traingleVertexBuffer(positions, 4 * 2 * sizeof(float));
-    triangleVertexArray.addVertexBuffer(traingleVertexBuffer);
+        // Create and bind a buffer for the indices
+        IndexBuffer ib(indices, 6);
 
-    BufferLayout layout;
-    layout.Push<float>(3);
-    triangleVertexArray.AddLayout(layout);
+        // Creating the shaders
+        ShaderProgramSource source = ParseShader("res/shaders/Basic.shader");
+        unsigned int shader = CreateShader(source.VertexSource, source.FragmentSource);
 
-    // Create a layout for the buffer we created
-    GLCall(glEnableVertexAttribArray(0));
-    GLCall(glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 2, 0)); // links the buffer with the vao
+        // Set the color of every pixel using uniforms
+        GLCall(int location = glGetUniformLocation(shader, "u_Color"));
+        ASSERT(location != -1);
+        float r = 0.0f;
+        float increment = 0.05f;
 
-    IndexBuffer traingleIndexBuffer(indices, 6);
+        // Loop until the user closes the window
+        while (!glfwWindowShouldClose(window))
+        {
+            GLCall(glClear(GL_COLOR_BUFFER_BIT)); // Render here
 
-    // Creating the shaders
-    ShaderProgramSource source = ParseShader("res/shaders/Basic.shader");
-    unsigned int shader = CreateShader(source.VertexSource, source.FragmentSource);
+            GLCall(glUseProgram(shader)); // bind the shader
+            GLCall(glUniform4f(location, r, 0.3, 0.8, 1.0)); // Set the color in the shader with the use of a uniform
 
-    // Set the color of every pixel using uniforms
-    GLCall(int location = glGetUniformLocation(shader, "u_Color"));
-    ASSERT(location != -1);
-    float r = 0.0f;
-    float increment = 0.05f;
+            va.Bind(); // bind the vertex array (vertex buffer and layout)
+            ib.Bind(); // bind the indices
 
-    // Loop until the user closes the window
-    while (!glfwWindowShouldClose(window))
-    {
-        GLCall(glClear(GL_COLOR_BUFFER_BIT)); // Render here
+            // Draw the current selected buffer
+            GLCall(glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr)); // nullptr, because the indices are bound to the current buffer: GL_ELEMENT_ARRAY_BUFFER
 
-        GLCall(glUseProgram(shader)); // bind the shader
-        GLCall(glUniform4f(location, r, 0.3, 0.8, 1.0)); // Set the color in the shader with the use of a uniform
-        triangleVertexArray.Bind(); // bind the vertex array (vertex buffer and layout)
-        traingleIndexBuffer.Bind();
+            // Animate the r value between 0.0 and 1.0
+            if (r > 1.0f)
+                increment = -0.05f;
+            else if (r < 0.0f)
+                increment = 0.05f;
+            r += increment;
 
-        // Draw the current selected buffer
-        GLCall(glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr)); // nullptr, because the indices are bound to the current buffer: GL_ELEMENT_ARRAY_BUFFER
+            GLCall(glfwSwapBuffers(window)); // Swap front and back buffers
+            GLCall(glfwPollEvents()); // Poll for and process events
+        }
 
-        // Animate the r value between 0.0 and 1.0
-        if (r > 1.0f)
-            increment = -0.05f;
-        else if (r < 0.0f)
-            increment = 0.05f;
-        r += increment;
-
-        GLCall(glfwSwapBuffers(window)); // Swap front and back buffers
-        GLCall(glfwPollEvents()); // Poll for and process events
+        GLCall(glDeleteProgram(shader)); // Clean up the the program with shaders
     }
 
-    GLCall(glDeleteProgram(shader)); // Clean up the the program with shaders
     glfwTerminate();
     return 0;
 }

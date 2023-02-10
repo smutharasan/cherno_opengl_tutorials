@@ -1,25 +1,84 @@
-#include "VertexBuffer.h"
+#pragma once
+
+#include <vector>
+#include <GL\glew.h>
+
 #include "Renderer.h"
 
-VertexBuffer::VertexBuffer(const void* givenData, unsigned int givenSize)
-{
-    GLCall(glGenBuffers(1, &m_RendererID)); // Generate a single buffer
-    GLCall(glBindBuffer(GL_ARRAY_BUFFER, m_RendererID)); // Select the buffer to be drawn
-    GLCall(glBufferData(GL_ARRAY_BUFFER, givenSize, givenData, GL_STATIC_DRAW)); // Add the data to the buffer
+/*
+* Buffer Element is a specific vertex attribute property. For example, I would declare the position coordinates as a buffer element and specify the count as 2 or 3 if its 2D or 3D respectfully.
+*/
 
-}
 
-VertexBuffer::~VertexBuffer()
+struct VertexBufferElement
 {
-    GLCall(glDeleteBuffers(1, &m_RendererID));
-}
+    unsigned int type;
+    unsigned int count;
+    unsigned char normalized;
 
-void VertexBuffer::Bind() const
-{
-    GLCall(glBindBuffer(GL_ARRAY_BUFFER, m_RendererID)); // Select the buffer to be drawn
-}
+    static unsigned int GetSizeOfType(unsigned int type)
+    {
+        switch (type)
+        {
+        case GL_FLOAT:          return 4;
+        case GL_UNSIGNED_INT:   return 4;
+        case GL_UNSIGNED_BYTE:  return 1;
+        }
 
-void VertexBuffer::UnBind() const
+        ASSERT(false);
+        return 0;
+    }
+};
+
+/*
+* Vertex Buffer Layout contains a list of buffer elements, so a list of attributes
+*  ^^ Represents a vertex essentially
+    Example <position, texture, normal>
+    Every time you want to add a new property use the push function
+    You have mention the type that the values are going to take of.
+
+    So lets say your adding the position property, then you would have to include that you're going to add float as the type because the values are provided are of float.
+
+    Every time you add a property, the stride or 'size of the vertex' gets recalculated
+*/
+
+class VertexBufferLayout
 {
-    GLCall(glBindBuffer(GL_ARRAY_BUFFER, 0)); // Unselect the buffer and reset it to 0
-}
+private:
+    std::vector<VertexBufferElement> m_Elements;
+    unsigned int m_Stride;
+public:
+    VertexBufferLayout()
+        : m_Stride(0) {}
+
+    template<typename T>
+    void Push(unsigned int count)
+    {
+        static_assert(sizeof(uintptr_t) == sizeof(void*), "Please provide the type you want the attribute to take shape of");
+
+    }
+
+    template<>
+    void Push<float>(unsigned int count)
+    {
+        m_Elements.push_back({ GL_FLOAT, count, GL_FALSE });
+        m_Stride += count * VertexBufferElement::GetSizeOfType(GL_FLOAT);
+    }
+
+    template<>
+    void Push<unsigned int>(unsigned int count)
+    {
+        m_Elements.push_back({ GL_UNSIGNED_INT, count, GL_FALSE });
+        m_Stride += count * VertexBufferElement::GetSizeOfType(GL_UNSIGNED_INT);
+    }
+
+    template<>
+    void Push<unsigned char>(unsigned int count)
+    {
+        m_Elements.push_back({ GL_UNSIGNED_BYTE, count, GL_FALSE });
+        m_Stride += count * VertexBufferElement::GetSizeOfType(GL_UNSIGNED_BYTE);
+    }
+
+    inline const std::vector<VertexBufferElement> GetElements() const { return m_Elements; }
+    inline unsigned int GetStride() const { return m_Stride; }
+};
