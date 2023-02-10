@@ -1,7 +1,8 @@
-#include "VertexBuffer.h"
+#include "VertexArray.h"
+#include "BufferLayout.h"
 #include "Renderer.h"
 
-VertexBuffer::VertexBuffer(const void* givenData, unsigned int givenSize)
+VertexArray::VertexArray(const void* givenData, unsigned int givenSize)
 {
     GLCall(glGenBuffers(1, &m_RendererID)); // Generate a single buffer
     GLCall(glBindBuffer(GL_ARRAY_BUFFER, m_RendererID)); // Select the buffer to be drawn
@@ -9,17 +10,17 @@ VertexBuffer::VertexBuffer(const void* givenData, unsigned int givenSize)
 
 }
 
-VertexBuffer::~VertexBuffer()
+VertexArray::~VertexArray()
 {
     GLCall(glDeleteBuffers(1, &m_RendererID));
 }
 
-void VertexBuffer::Bind() const
+void VertexArray::Bind() const
 {
     GLCall(glBindBuffer(GL_ARRAY_BUFFER, m_RendererID)); // Select the buffer to be drawn
 }
 
-void VertexBuffer::UnBind() const
+void VertexArray::UnBind() const
 {
     GLCall(glBindBuffer(GL_ARRAY_BUFFER, 0)); // Unselect the buffer and reset it to 0
 }

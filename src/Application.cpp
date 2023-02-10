@@ -172,7 +172,13 @@ int main(void)
     GLCall(glGenVertexArrays(1, &vao));
     GLCall(glBindVertexArray(vao));
 
+    VertexArray triangleVertexArray;
     VertexBuffer traingleVertexBuffer(positions, 4 * 2 * sizeof(float));
+    triangleVertexArray.addVertexBuffer(traingleVertexBuffer);
+
+    BufferLayout layout;
+    layout.Push<float>(3);
+    triangleVertexArray.AddLayout(layout);
 
     // Create a layout for the buffer we created
     GLCall(glEnableVertexAttribArray(0));
@@ -197,7 +203,7 @@ int main(void)
 
         GLCall(glUseProgram(shader)); // bind the shader
         GLCall(glUniform4f(location, r, 0.3, 0.8, 1.0)); // Set the color in the shader with the use of a uniform
-        GLCall(glBindVertexArray(vao)); // bind the vertex array (vertex buffer and layout)
+        triangleVertexArray.Bind(); // bind the vertex array (vertex buffer and layout)
         traingleIndexBuffer.Bind();
 
         // Draw the current selected buffer
