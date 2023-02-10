@@ -3,7 +3,11 @@
 #include "VertexBuffer.h"
 #include "BufferLayout.h"
 
-class VertexArray
+/*
+* Figuratively this should represent a geomentry figure because this is a list of vertices. 
+*
+*/
+class VertexArray 
 {
 private:
     unsigned int m_RendererID;

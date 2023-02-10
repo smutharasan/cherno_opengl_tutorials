@@ -1,5 +1,6 @@
 #pragma once
 
+// stores the buffer for a given vertex
 class VertexBuffer
 {
 private:

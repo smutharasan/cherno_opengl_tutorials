@@ -1,5 +1,6 @@
 #pragma once
 
+// A class to reuse the vertices
 class IndexBuffer
 {
 private:
