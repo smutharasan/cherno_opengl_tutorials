@@ -105,6 +105,24 @@ int main(void)
 
     /* Create a layout for the buffer we created */
     glEnableVertexAttribArray(0);
+
+    /*
+     first argument(index) - specify the kind of attribute you want to work with
+        * In this case I want to work with positions so I specify 0
+        * If I would want to work with normal coord I would specify 2
+     second argument(size) - specify the size of each attribute. 
+        * For example, if you're working with position attribute, you would specify if its 1-D or 2-D or 3-D
+        * Likewise for texture and normal attributes, specify the number of elements that are in that attribute
+     Third and fourth arguments are pretty straightforward
+     Fifth argument (stride) - specify the total number of elements (i.e the attributes) per vertex in bytes. 
+        Other ways to think of this: 'size of vertex', 'size of consecutive vertices' etc. 
+            Take arbitrary example where I have [3,2,3] -> [position, texture, normal]
+            Then your stride would be (3*4) + (2*4) + (3*4) = 32
+     Sixth argument (offset) - connected to the first arg. If I really wanted to work with normal (index: 2). 
+     I would have to jump (3*4) + (2*4) = 20 bytes to start accessing the subset array of the normal coord
+            Recall the array begins [0...19...31]
+    */
+        
     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 2, 0);
 
     /* 
@@ -115,11 +133,18 @@ int main(void)
     std::string vertexShader =
         "#version 330 core\n"
         "\n"
-        "layout(location = 0) in vec4 position;\n" // gl_Position needs to be a vec4
+        "layout(location = 0) in vec4 position;\n" 
+        // ^^ gl_Position needs to be a vec4, 'Make sure the '0' matches the '0' in the glVertexAtrribPointer index: '0' '
         "\n"
         "void main()\n"
         "{\n"
-        "   gl_Position = position;\n"
+        "   gl_Position = position;\n" 
+        /*
+        * Remember this line :         "layout(location = 0) in vec4 position;\n" 
+        * That's supposed to be in vec2 position, Yes the '2' matches the size argument : '2' given in the glVertexAttribPointer 
+        * However, the reason why its changed from vec2 to vec4 is because the gl_Position is a type vec4. So its inevitable that things will always end up in vec4 
+        *   for the position attribute. 
+        */
         "}\n";
 
     // Will run for every pixel
